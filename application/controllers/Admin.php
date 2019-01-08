@@ -1,6 +1,7 @@
 <?php 
 class Admin extends CI_Controller {
 
+	public $photos;
 	private $_config = array(
 		array(
 			'field' => 'kode',
@@ -71,6 +72,13 @@ class Admin extends CI_Controller {
 	}
 
 	public function business_center_save_models(){
+
+		// var_dump($_FILES['photo']['name']);
+		if($_FILES['photo']['name']){
+			$upload = $this->_do_upload();
+			$this->photos = $upload;
+		}
+
 		$this->form_validation->set_rules($this->_config);
 			if($this->form_validation->run() == FALSE){
 				$res['error'] = TRUE;
@@ -78,7 +86,8 @@ class Admin extends CI_Controller {
 					'kode'=>form_error('kode'),
 					'nama_barang'=>form_error('nama_barang'),
 					'harga'=>form_error('harga'),
-					'stok'=>form_error('stok')
+					'stok'=>form_error('stok'),
+					'photo' => $this->photos
 				);
 			}else {
 				$res['error'] = FALSE;
@@ -86,13 +95,9 @@ class Admin extends CI_Controller {
 					'kode' => $this->input->post('kode'),
 					'nama_barang' => $this->input->post('nama_barang'),
 					'harga' => $this->input->post('harga'),
-					'stok' => $this->input->post('stok')
+					'stok' => $this->input->post('stok'),
+					'photo' => $this->photos
 				);
-
-				// if(!empty($_FILES['photo']['name'])){
-				// 	$upload = $this->_do_upload();
-				// 	$data['photo'] = $upload;
-				// }
 
 				$this->Admin_models->save($data);
 			}
@@ -144,23 +149,22 @@ class Admin extends CI_Controller {
 		echo json_encode($res);
 	}
 	public function _do_upload(){
-		$conf['upload_path']		= 'upload/';
-		$conf['allowed_types']		= '*';
-		$conf['max_size']			= 1200;
-		$conf['max_width']			= 1000;
-		$conf['max_height']			= 1000;
-		$conf['file_name']			= round(microtime(true) * 1000);
+		$config['upload_path']			= './upload/';
+		$config['allowed_types']		= '*';
+		$config['max_size']				= 200;
+		$config['max_width']			= 1024;
+		$config['max_height']			= 768;
+		$config['file_name']			= uniqid(rand()).date('mdYhis', time());
 
-		$this->load->library('upload', $conf);
+		$this->load->library('upload', $config);
 
 
-        if(!$this->upload->do_upload('photo'))
-        {
-			$res['msg'] = array('error_upload' => $this->upload->display_errors('',''));
-			$res['error'] = TRUE;
-			echo json_encode($data);
-			exit();
+        if(!$this->upload->do_upload('photo')){
+
+			return $this->upload->display_errors();
+
+		}else{
+			return $this->upload->data('file_name');
 		}
-		return $this->upload->data('file_name');
 	}
 }
