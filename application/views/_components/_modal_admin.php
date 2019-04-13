@@ -32,6 +32,17 @@
 					    <input type="text" class="form-control" id="stok" name="stok" v-model="isSelected.stok" @focus="Simpan = 'Simpan'" :class="[isDisabled, {'is-invalid' : isValidate.stok}]">
 					    <small class="text-sm-left text-danger animated fadeIn" v-html="isValidate.stok"></small>
 					  </div>
+					  <div class="form-group">
+					  	<label for="image">Foto <span v-if="removed" class="text-danger">(dihapus)</span></label><br>
+					  	<img :src="'<?= base_url('upload/') ?>' + isSelected.photo" id="image" class="w-50" :class="[isDisabled, willRemove]" alt="foto"><br>
+					  	<small class="text-sm-left" v-html="isSelected.photo"></small>
+						<br><br>
+				  		<label class="form-check-label">
+					    	<input class="form-check-input" type="checkbox" id="photo" false-value="" :true-value="isSelected.photo" name="remove" :class="isDisabled" @change="[updatedPhoto = '', removed = true]" v-model="isRemoveSelected">Hapus & Ubah
+					    	<input type="file" class="form-control-file" id="photo" name="photo" ref="photos" @change="handlePhotoUpdate" :class="isDisabled"> <br>
+						    <small class="text-sm-left text-danger animated fadeIn" v-html="isValidate.photo"></small>
+					  	</label>
+					  </div>
 				      <div class="modal-footer">
 						  <div class="w-100 d-flex" v-if="isEditable">
 						  	<button type="button" class="btn waves-effect waves-light m-auto bg-secondary" @click="editThis">Edit</button>	
@@ -85,7 +96,7 @@
 					  <div class="form-grup">
 					    <label for="foto">Foto</label>
 					    <input type="file" class="form-control-file" id="photo" name="photo" ref="photo" @change="handlePhoto">
-					    <small class="text-sm-left text-danger animated fadeIn" v-html="isValidate.error_upload"></small>
+					    <small class="text-sm-left text-danger animated fadeIn" v-html="isValidate.photo"></small>
 					  </div>
 				      <div class="modal-footer">
 						  <div class="w-100 d-flex">

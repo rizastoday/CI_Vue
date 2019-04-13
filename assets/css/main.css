@@ -1,0 +1,26 @@
+.text-close {
+	font-size: 1.2rem;
+	transition: all .4s;
+	margin: 5px;
+	cursor: pointer;
+	color: white;
+}
+.text-close:hover {
+	transform: scale(1.3);
+	color: red;
+}
+.cardBarang {
+	cursor: zoom-in;
+}
+
+.input_search { 
+	height: 3rem; 
+	border-radius: 25px; 
+	transition:.5s;
+}
+.input_search:focus{
+	border-radius: 3px;
+}
+.dots{
+	width: 7px; height: 7px; border-radius: 3.5px; position: absolute; margin-left: 15px; margin-top: -23px; background-color: red;
+}

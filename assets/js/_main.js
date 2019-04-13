@@ -1,27 +1,34 @@
-const path_uri = "http://localhost/PHP_PROJECT/CodeIgniter/codeigniter/"
+let footer = {
+	template: `
+      	<footer class="w-100 bg-dark p-3 sticky-bottom" style="bottom: 0">
+      		<p class="text-center yellow-text" v-html="footer"></p>
+      	</footer>
+	`,
+	data(){
+		return{
+			footer:'<i class="fa fa-code yellow-text"></i> with <i class="fa fa-heart pink-text"></i> by <a class="yellow-text" href="#" title="">Superman</a> | Copyright &copy; 2018 - now'
+		}
+	}
+}
 
-import {footer} from "./footer.js"
-import {themes} from "./themes.js"
 
-new Vue({
+const path_uri = "http://localhost/PHP_PROJECT/CodeIgniter/codeigniter/" //Set base path based on config.php
+
+
+const app = new Vue({
     el:'#app',
     components: {
     	'copyright' : footer
     },
 	data(){
 		return{
-			warnaNavbar: '', //warna navbar
-			warnaCari:'', //warna input teks
-			warnaText:'', //warna teks di navbar
-			textView:'', //teks dinamis pada pemilihan tema
-			warnaCardAda:'', //warna card barang jika barang ada
-			warnaCardHabis:'', //warna card barang jika barang habis
-			warnaDokumen:'', //warna teks paragraf
-			warnaBackground: '', // aturan untuk background di halaman ini
-			colorThemes: themes, //library warna tema
-			applyThemes:[], //menampung tema yang dipilih dan memasukan datanya sebagai array baru
+			addCart : false,
+			getToken: false,
+			hasCart : false,
+			icons: 'fa fa-chevron-down',
 			barang: [], //data barang dari database
 			notes:[],
+			hasNote: null,
 			logs: [],
 			firstLog: [],
 			input: '', //kolom pencarian, berguna untuk elastic search
@@ -33,30 +40,43 @@ new Vue({
 			showDetail: false, //card detail saat di klik
 			overlay: '', //warna container card detail
 			detailBarang: [], //menampung data barang saat per item di klik
-			isEmpty:''
+			isEmpty:'',
+			formLogin : {
+				username: '',
+				password: '',
+				types: ''
+			},
+			Login: 'Login',
+			isError:  [],
+			levelType: '',
+			disabled : 'disabled',
+			qty: null,
+			dataCart: {},
+			total:'',
+			cart_data: '',
+			nextBill: true,
+			textBill: 'Lanjut',
+			id_user: '',
+			error: {},
+			highlight: [],
+			token:''
 
 		}
 	},
 	created(){ //funsi create, fungsi yang akan dijalankan saat aplikasi vue di load
-		this.warnaDefault //warna default terpilih, computed
 		this.getPosts() //function untuk mendapat data dari database
+		this.loadCart
 	},
 	methods: {
-		themes(e){ //on click themes, menampung tema terpilih di parameter e sebagai array
-			this.applyThemes = e //menampung array e ke variabel applyThemes dan dijadikan sebagai variabel baru
-			this.warnaNavbar = e.warnaNavbar //mengatur....
-			this.warnaText = e.warnaText
-			this.warnaCari = e.warnaCari
-			this.warnaBackground = e.warnaBackground
-			this.warnaDokumen = e.warnaDokumen
-			this.warnaCardAda = e.warnaCardAda
-			this.warnaCardHabis = e.warnaCardHabis
-			this.textView = e.textView
-		},
 		getPosts(){
 			axios.get(path_uri + 'main/business_center_main_rest') // load API
 			.then((response)=>{
 				this.barang = response.data //data response hasil observeb di tampung di variabel barang
+			});
+
+			axios.get(path_uri + 'main/business_center_main_hot_rest')
+			.then((response)=>{
+				this.highlight = response.data
 			});
 
 			axios.get(path_uri + 'main/business_center_main_notes_rest')
@@ -91,42 +111,106 @@ new Vue({
 			this.detailBarang = []
 			this.showDetail = false
 			this.overlay = ''
-		}
+		},
+		addLoginProcess(){
+			// console.log(this.formLogin)
+			this.Login = 'Memprosess..'
+			let formData = this.toFormData(this.formLogin)
+			axios.post(path_uri + 'login/login_process', formData)
+			.then(response=>{
+				// console.log(response.data)
+				if(response.data.error){
+					this.Login = 'Login'
+					this.isError = response.data.message
+					
+				}else{
+					this.Login = 'Berhasil'
+					// console.log(response.data.type)
+					if (response.data.type = 'admin') {
+						window.location.assign(path_uri + 'admin')
+					}else if (response.data.type = 'siswa') {
+						$('#loginModal').modal('hide')
+						this.formLogin = []
+						
+					}
+				}
+			})
+		},
+        toFormData(obj){
+            const form_data = new FormData();
+            for(var key in obj){
+                form_data.append(key, obj[key])
+            }
+            return form_data
+        },
+        addToCart(e){
+        	let i = {
+        		code: e.kode,
+        		name: e.nama_barang,
+        		sprice: Number(e.harga),
+        		qty: Number(this.qty)
+        	}
+        	let data = this.toFormData(i)
+        	axios.post(path_uri + 'Cart_Controller', data)
+        	.then(response=>{
+        		this.hasCart = true
+        		$('#cart_data').html(response.data)
+        	})
+        },
+		addBill(){
+        	this.nextBill = false
+        },
+        processBill(){
+        	this.textBill = 'Process <i class="fa fa-spinner fa-spin"></i>'
+        	let i = {
+        		id_user: this.id_user
+        	}
+        	let data = this.toFormData(i)
+        	axios.post(path_uri + 'Cart_Controller/business_center_main_bill_cart',data)
+        	.then(res=>{
+        		if(res.data.error){
+        			this.error = res.data.message
+        			this.textBill = 'Ulangi'
+        		}if(res.data.success){
+        			this.addCart = false
+					Swal({
+						title: 'Sukses',
+						text: 'Pesanan Anda sudah dikirim! Cek token pembelanjaan',
+						type: 'success'
+					}).then(result=>{
+						if(result.value){
+				        	let t = {
+				        		id_user: this.id_user
+				        	}
+				        	let data1 = this.toFormData(t)
+				        	axios.post(path_uri + 'main/business_center_main_get_token', data1)
+				        	.then(res=>{
+				        		this.token = res.data[0].kode_pesanan
+								$('#cartModal').modal('hide')
+								this.getToken = true
+				        	})
+
+	    					this.dialog = !this.dialog
+			        		this.modelData = []
+			        		this.isValidate = []
+			        		this.imageName = ''
+						}
+					})
+        		}
+        	})
+        }
 	},
 	computed:{
+		loadCart(){
+        	return axios.get(path_uri + 'Cart_Controller/business_center_main_load_cart')
+        	.then(response=>{
+        		$('#cart_data').html(response.data)
+        	})
+		},
 		display(){ //elastic search!!!!!!!!!!
 			return this.paginate(this.barang.filter((e)=>{
 				return e.nama_barang.toLowerCase().match(this.input.toLowerCase())
 			}))
-		},
-		warnaDefault(){ //perubahan tema secara otomatis selain pemilihan di dropdown
-			return this.colorThemes.filter((color)=>{
-				let time = new Date().getHours()
-
-				if (time < 17) {
-					color = this.colorThemes[0] //tema terang jika kurang dari pukul 5 sore
-						this.applyThemes = color
-						this.warnaNavbar = color.warnaNavbar
-						this.warnaText = color.warnaText
-						this.warnaBackground = color.warnaBackground
-						this.warnaDokumen = color.warnaDokumen
-						this.warnaCardAda = color.warnaCardAda
-						this.warnaCardHabis = color.warnaCardHabis
-						this.warnaCari = color.warnaCari
-						this.textView = color.textView
-				}else {
-					color = this.colorThemes[1] //tema akan berganti gelap saat pukul 5 sore
-						this.applyThemes = color
-						this.warnaNavbar = color.warnaNavbar
-						this.warnaText = color.warnaText
-						this.warnaBackground = color.warnaBackground
-						this.warnaDokumen = color.warnaDokumen
-						this.warnaCardAda = color.warnaCardAda
-						this.warnaCardHabis = color.warnaCardHabis
-						this.warnaCari = color.warnaCari
-						this.textView = color.textView
-				}
-			})
 		},
 	},
 	watch: {
@@ -150,6 +234,65 @@ new Vue({
 			}else {
 				this.isEmpty = 'd-block'
 			}
+		},
+		id_user(){
+			if(this.id_user == ''){
+				this.error = ''
+				this.textBill = 'Lanjut'
+			}
 		}
 	}
+});
+
+// Terpaksa memakai jQuery.
+
+$(document).ready(function(){
+    $(document).on('click','.remove_cart',function(){ //belum bisa ES6 :(
+	    let data=$(this).attr("id"); 
+	    let url = "http://localhost/PHP_PROJECT/CodeIgniter/codeigniter/Cart_Controller/business_center_main_delete_cart";
+	    $.ajax({
+	        url : url,
+	        method : "POST",
+	        data : {data : data},
+	        success :function(data){
+	            $('#cart_data').html(data);
+	            // console.log(data);
+	        }
+	    });
+	});
+
+	$(".foto").owlCarousel({
+        loop: true,
+        margin: 5,
+        center: false,
+        lazyLoad: true,
+        responsiveClass: true,
+        autoplay:true,
+        autoplayTimeout:7000,
+        autoplayHoverPause:true,
+        responsive :{
+            768: {
+                items: 1,
+                dotEach: false,
+            },
+            900: {
+                items: 2,
+                dotEach: false
+            }
+        }
+    });
+	// $('.bill_cart').click(function(){
+	// 	// let data2 = new FormData($('#form_cart')[0]);
+	// 	let data = {
+	// 		pruduct_id: $(this).data('productid'),
+	// 		product_name: $(this).data('productname'),
+	// 		product_price: $(this).data('productprice'),
+	// 		product_qty: $(this).data('productqty'),
+	// 		product_subtotal: $(this).data('productsubtotal'),
+	// 		product_total: $(this).data('producttotal'),
+	// 	}
+	// 	console.log(data);
+	// 	$.ajax({
+	// 	});
+	// });
 });
